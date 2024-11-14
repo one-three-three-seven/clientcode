@@ -1,0 +1,19 @@
+{
+  "name": "clientcode",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "author": "Sonic",
+  "license": "0BSD",
+  "description": "",
+  "dependencies": {
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.11.10",
+    "typescript": "^5.6.3"
+  }
+}
