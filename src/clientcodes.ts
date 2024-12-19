@@ -1,28 +1,28 @@
 export const ClientCodeMap = {
-    BU: 'besu',
-    EG: 'erigon',
-    GE: 'geth',
-    NM: 'nethermind',
-    RH: 'reth',
-    GR: 'grandine',
-    LH: 'lighthouse',
-    LS: 'lodestar',
-    NB: 'nimbus',
-    TK: 'teku',
-    PM: 'prysm',
+    BU: 'Besu',
+    EG: 'Erigon',
+    GE: 'Geth',
+    NM: 'Nethermind',
+    RH: 'Reth',
+    GR: 'Grandine',
+    LH: 'Lighthouse',
+    LS: 'Lodestar',
+    NB: 'Nimbus',
+    TK: 'Teku',
+    PM: 'Prysm',
 }
 
 export const RocketPoolELMap = {
-    R: 'reth',
-    N: 'nethermind',
-    G: 'geth',
-    B: 'besu',
+    R: 'Reth',
+    N: 'Nethermind',
+    G: 'Geth',
+    B: 'Besu',
 }
 
 export const RocketPoolCLMap = {
-    N: 'nimbus',
-    P: 'prysm',
-    L: 'lighthouse',
-    T: 'teku',
-    S: 'lodestar',
+    N: 'Nimbus',
+    P: 'Prysm',
+    L: 'Lighthouse',
+    T: 'Teku',
+    S: 'Lodestar',
 }

@@ -39,9 +39,9 @@ async function main() {
         const endSlot = await getLastFinalizedSlotBlockchain()
         let startSlot = lastSlotDatabase + 1
 
-        // if (startSlot < 8953199) {
-        //     startSlot = 8953199 // First slot of 2024-04-28 UTC
-        // }
+        if (startSlot < 8953199) {
+            startSlot = 8953199 // First slot of 2024-04-28 UTC
+        }
 
         if (startSlot > endSlot) {
             console.log(`Waiting for next finalized epoch...`)
@@ -73,8 +73,8 @@ async function main() {
 }
 
 async function processSlot(slot: number) {
-    const blockData = await fetchBlockData(slot)
-    const slotRecord = detectClients(blockData)
+    const rawBlock = await fetchBlockData(slot)
+    const slotRecord = detectClients(rawBlock)
     await insertIntoDatabase(slotRecord)
 
     // Print logs every 1000th slot or every slot if we are near the chain head
@@ -106,27 +106,3 @@ process.on('SIGTERM', () => handleExitSignal('SIGTERM'))
 process.on('SIGINT', () => handleExitSignal('SIGINT'))
 
 main()
-
-/* SELECT
-  ARRAY_REMOVE(ARRAY[
-    CASE WHEN lighthouse THEN 'lighthouse' END,
-    CASE WHEN teku THEN 'teku' END,
-    CASE WHEN nimbus THEN 'nimbus' END,
-    CASE WHEN lodestar THEN 'lodestar' END,
-    CASE WHEN grandine THEN 'grandine' END,
-    CASE WHEN nethermind THEN 'nethermind' END,
-    CASE WHEN geth THEN 'geth' END,
-    CASE WHEN besu THEN 'besu' END,
-    CASE WHEN erigon THEN 'erigon' END,
-    CASE WHEN reth THEN 'reth' END
-  ], NULL) AS combos,
-  COUNT(*) AS quantity
-FROM
-  slots
-WHERE
-  (lighthouse::int + teku::int + nimbus::int + lodestar::int + grandine::int +
-   nethermind::int + geth::int + besu::int + erigon::int + reth::int) = 2
-GROUP BY
-  combos
-ORDER BY
-  quantity DESC; */

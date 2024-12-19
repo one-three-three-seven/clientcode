@@ -1,12 +1,18 @@
-export type BlockData = {
-    slot: number
+export type RawBlock = {
+    index: number
+    validatorIndex: number | null
     graffiti: string | null
 }
 
-export type SlotRecord = {
-    slot: number
+export type Slot = {
+    index: number
     date: Date
-    graffiti: string
-    rocketPool: boolean
-    clients: string[]
+    validatorIndex: number | null
+    graffiti: string | null
+    clients: Client[]
+}
+
+export type Client = {
+    name: string
+    version: string | null
 }

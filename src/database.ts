@@ -1,8 +1,8 @@
-import type { SlotRecord } from './types.js'
-import { ClientCodeMap } from './clientcodes.js'
+import type { Slot } from './types.js'
 import pg from 'pg'
 
-const TABLE_NAME = 'slots'
+const SLOTS_TABLE_NAME = 'slots'
+const SLOT_CLIENTS_TABLE_NAME = 'slot_clients'
 
 const db = new pg.Pool({
     user: 'sonic',
@@ -13,52 +13,65 @@ const db = new pg.Pool({
 })
 
 export async function createTable() {
-    const createTableSQL = `CREATE TABLE IF NOT EXISTS ${TABLE_NAME} (
-                            slot INTEGER PRIMARY KEY,
-                            date DATE NOT NULL,
-                            graffiti TEXT,
-                            prysm BOOLEAN NOT NULL,
-                            lighthouse BOOLEAN NOT NULL,
-                            teku BOOLEAN NOT NULL,
-                            nimbus BOOLEAN NOT NULL,
-                            lodestar BOOLEAN NOT NULL,
-                            grandine BOOLEAN NOT NULL,
-                            nethermind BOOLEAN NOT NULL,
-                            geth BOOLEAN NOT NULL,
-                            besu BOOLEAN NOT NULL,
-                            erigon BOOLEAN NOT NULL,
-                            reth BOOLEAN NOT NULL,
-                            rocketpool BOOLEAN NOT NULL
-                            );`
+    const createSlotsTableSQL = `CREATE TABLE IF NOT EXISTS ${SLOTS_TABLE_NAME} (
+                                 index INTEGER PRIMARY KEY,
+                                 date DATE NOT NULL,
+                                 validator_index INTEGER,
+                                 graffiti TEXT
+                                 );`
 
-    const createIndexSQL = `CREATE INDEX IF NOT EXISTS idx_${TABLE_NAME}_date ON ${TABLE_NAME} (date);`
+    const createSlotClientsTableSQL = `CREATE TABLE IF NOT EXISTS ${SLOT_CLIENTS_TABLE_NAME} (
+                                       slot_index INTEGER NOT NULL REFERENCES slots(index),
+                                       client TEXT NOT NULL,
+                                       version TEXT
+                                       );`
 
     try {
-        await db.query(createTableSQL)
-        await db.query(createIndexSQL)
+        await db.query(createSlotsTableSQL)
+        await db.query(createSlotClientsTableSQL)
     } catch (error) {
-        throw `Error creating table ${TABLE_NAME} or index on 'date' column: ${error.message}`
+        throw `Error creating table ${SLOTS_TABLE_NAME}: ${error.message}`
     }
 
-    console.log(`Table '${TABLE_NAME}' is ready.`)
+    console.log(`Table '${SLOTS_TABLE_NAME}' is ready.`)
+    console.log(`Table '${SLOT_CLIENTS_TABLE_NAME}' is ready.`)
 }
 
-export async function insertIntoDatabase(record: SlotRecord) {
-    const columns = ['slot', 'date', 'graffiti', 'rocketpool', ...Object.values(ClientCodeMap)]
-    const values = [record.slot, record.date.toISOString(), record.graffiti, record.rocketPool, ...Object.values(ClientCodeMap).map(client => record.clients.includes(client))]
-    const placeholders = values.map((_, index) => `$${index + 1}`)
+export async function insertIntoDatabase(slot: Slot) {
+    const insertSlotSQL = `INSERT INTO ${SLOTS_TABLE_NAME} (index, date, validator_index, graffiti) VALUES ($1, $2, $3, $4);`
 
-    const insertSQL = `INSERT INTO ${TABLE_NAME} (${columns.join(', ')}) VALUES (${placeholders.join(', ')});`
+    const slotValues = [
+        slot.index,
+        slot.date.toISOString(),
+        slot.validatorIndex,
+        slot.graffiti
+    ]
 
     try {
-        await db.query(insertSQL, values)
+        await db.query(insertSlotSQL, slotValues)
     } catch (error) {
-        throw `Error inserting slot ${record.slot}: ${error.message}`
+        throw `Error inserting slot ${slot.index}: ${error.message}`
     }
+
+    slot.clients.forEach(async client => {
+        const insertSlotClientsSQL = `INSERT INTO ${SLOT_CLIENTS_TABLE_NAME} (slot_index, name, version) VALUES ($1, $2, $3);`
+
+        const slotClientsValues = [
+            slot.index,
+            client.name,
+            client.version
+        ]
+
+        try {
+            await db.query(insertSlotClientsSQL, slotClientsValues)
+        } catch (error) {
+            throw `Error inserting clients ${slot.index}: ${error.message}`
+        }
+    })
 }
 
 export async function getLastSlotDatabase(): Promise<number> {
-    const maxSlotSQL = `SELECT MAX(slot) as max_slot FROM ${TABLE_NAME};`
+    const maxSlotSQL = `SELECT MAX(index) as max_slot FROM ${SLOTS_TABLE_NAME};`
 
     try {
         const result = await db.query(maxSlotSQL)
@@ -71,32 +84,22 @@ export async function getLastSlotDatabase(): Promise<number> {
 
 export function getAggregatedSlotsData() {
     const sql = `
-        SELECT
-            date,
-            MIN(slot) AS slot_first,
-            MAX(slot) AS slot_last,
-            COUNT(*) AS slot_count,
-            AVG(prysm::int) AS prysm,
-            AVG(lighthouse::int) AS lighthouse,
-            AVG(teku::int) AS teku,
-            AVG(nimbus::int) AS nimbus,
-            AVG(lodestar::int) AS lodestar,
-            AVG(grandine::int) AS grandine,
-            AVG(nethermind::int) AS nethermind,
-            AVG(geth::int) AS geth,
-            AVG(besu::int) AS besu,
-            AVG(erigon::int) AS erigon,
-            AVG(reth::int) AS reth
-        FROM
-            slots
-		WHERE
-			    date < CURRENT_DATE
-            AND
-                date >= CURRENT_DATE - INTERVAL '90' DAY
-        GROUP BY
-            date
-        ORDER BY
-            date;
+SELECT
+    sub.date,
+    json_agg(json_build_object('name', sub.name, 'count', sub.cnt)) AS clients
+FROM (
+    SELECT
+        s.date,
+        sc.name,
+        COUNT(*) AS cnt
+    FROM slots s
+    JOIN slot_clients sc ON s.index = sc.slot_index
+    WHERE s.date < CURRENT_DATE
+      AND s.date >= CURRENT_DATE - INTERVAL '90' DAY
+    GROUP BY s.date, sc.name
+) sub
+GROUP BY sub.date
+ORDER BY sub.date;
     `
 
     return db.query(sql)
