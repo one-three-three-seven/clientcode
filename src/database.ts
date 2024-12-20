@@ -113,7 +113,7 @@ export function getAggregatedSlotsData() {
     const sql = `
 SELECT
     sub.date,
-    json_agg(json_build_object('name', sub.name, 'count', sub.cnt)) AS clients
+    json_object_agg(sub.name, sub.cnt) AS clients
 FROM (
     SELECT
         s.date,
