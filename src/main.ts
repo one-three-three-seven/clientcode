@@ -1,4 +1,4 @@
-import { closeDatabase, createTable, getLastSlotDatabase, insertIntoDatabase, isDatabaseBusy } from './database.js'
+import { closeDatabase, createTable, getLastSlotDatabase, insertClient, insertIntoDatabase, isDatabaseBusy } from './database.js'
 import { fetchBlockData, getLastFinalizedSlotBlockchain } from './client.js'
 import { isDateInLastHour, sleep } from './helper.js'
 import { detectClients } from './detection.js'
@@ -29,6 +29,7 @@ function waitForAvailableConcurrency() {
 async function main() {
     await createTable()
     listenAPI()
+    refreshClients()
 
     while (true) {
         if (exitSignalReceived) {
@@ -106,3 +107,40 @@ process.on('SIGTERM', () => handleExitSignal('SIGTERM'))
 process.on('SIGINT', () => handleExitSignal('SIGINT'))
 
 main()
+
+
+async function refreshClients() {
+
+    const repositories = new Map([
+        ['Besu', 'hyperledger/besu'],
+        ['Erigon', 'erigontech/erigon'],
+        ['Geth', 'ethereum/go-ethereum'],
+        ['Nethermind', 'NethermindEth/nethermind'],
+        ['Reth', 'paradigmxyz/reth'],
+        ['Grandine', 'grandinetech/grandine'],
+        ['Lighthouse', 'sigp/lighthouse'],
+        ['Lodestar', 'ChainSafe/lodestar'],
+        ['Nimbus', 'status-im/nimbus-eth2'],
+        ['Teku', 'Consensys/teku'],
+        ['Prysm', 'prysmaticlabs/prysm']
+    ])
+
+    // Iterating over the Map
+    for (const [client, repo] of repositories) {
+        try {
+            const response = await fetch(`https://api.github.com/repos/${repo}/tags`)
+            if (!response.ok) {
+                throw `Failed to fetch client tags for ${client}. Status: ${response.status}`
+            }
+
+            const tags = await response.json()
+
+            tags.forEach(tag => {
+                insertClient(client, tag.commit.sha, tag.name)
+            })
+
+        } catch (error) {
+            throw `Error fetching client tags for ${client}: ${error.message}`
+        }
+    }
+}

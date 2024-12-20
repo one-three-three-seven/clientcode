@@ -3,6 +3,7 @@ import pg from 'pg'
 
 const SLOTS_TABLE_NAME = 'slots'
 const SLOT_CLIENTS_TABLE_NAME = 'slot_clients'
+const CLIENTS_TABLE_NAME = 'clients'
 
 const db = new pg.Pool({
     user: 'sonic',
@@ -26,9 +27,19 @@ export async function createTable() {
                                        version TEXT
                                        );`
 
+    const createClientsTableSQL = `CREATE TABLE IF NOT EXISTS ${CLIENTS_TABLE_NAME} (
+    name TEXT NOT NULL,
+    hash TEXT NOT NULL,
+    version TEXT NOT NULL
+    );`
+
+    const createUniqueIndexClientsTableSQL = `CREATE UNIQUE INDEX IF NOT EXISTS unique_name_hash ON ${CLIENTS_TABLE_NAME} (name, hash);`
+
     try {
         await db.query(createSlotsTableSQL)
         await db.query(createSlotClientsTableSQL)
+        await db.query(createClientsTableSQL)
+        await db.query(createUniqueIndexClientsTableSQL)
     } catch (error) {
         throw `Error creating table ${SLOTS_TABLE_NAME}: ${error.message}`
     }
@@ -68,6 +79,22 @@ export async function insertIntoDatabase(slot: Slot) {
             throw `Error inserting clients ${slot.index}: ${error.message}`
         }
     })
+}
+
+export async function insertClient(name: string, hash: string, version: string) {
+    const insertClientSQL = `INSERT INTO ${CLIENTS_TABLE_NAME} (name, hash, version) VALUES ($1, $2, $3) ON CONFLICT (name, hash) DO UPDATE SET version = EXCLUDED.version;`
+
+    const clientValues = [
+        name,
+        hash,
+        version
+    ]
+
+    try {
+        db.query(insertClientSQL, clientValues)
+    } catch (error) {
+        throw `Error inserting client: ${error.message}`
+    }
 }
 
 export async function getLastSlotDatabase(): Promise<number> {
@@ -125,3 +152,16 @@ export function isDatabaseBusy() {
 
     return total !== idle || waiting > 0
 }
+
+/*
+SELECT
+    sc.name,
+    c.version,
+    COUNT(*) AS count
+FROM slots s
+JOIN slot_clients sc ON s.index = sc.slot_index
+LEFT JOIN clients c ON c.hash LIKE sc.version || '%' AND c.name = sc.name
+WHERE s.date >= NOW() - INTERVAL '24 HOURS'
+GROUP BY sc.name, c.version
+ORDER BY count DESC;
+*/

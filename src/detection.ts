@@ -33,7 +33,7 @@ export function detectClients(rawBlock: RawBlock): Slot {
     }
 }
 
-function detectClientText(graffiti: string) {
+/* function detectClientText(graffiti: string) {
     if (graffiti === null) {
         return []
     }
@@ -47,7 +47,7 @@ function detectClientText(graffiti: string) {
     }
 
     return matches
-}
+} */
 
 function detectClientCode(graffiti: string | null) {
     if (graffiti === null) {
@@ -68,7 +68,7 @@ function detectClientCode(graffiti: string | null) {
     return matches
 }
 
-function detectRocketPool(graffiti: string) {
+/* function detectRocketPool(graffiti: string) {
     if (graffiti === null) {
         return []
     }
@@ -89,4 +89,4 @@ function detectRocketPool(graffiti: string) {
     }
 
     return matches
-}
+} */
