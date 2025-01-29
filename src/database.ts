@@ -23,7 +23,7 @@ export async function createTable() {
 
     const createSlotClientsTableSQL = `CREATE TABLE IF NOT EXISTS ${SLOT_CLIENTS_TABLE_NAME} (
                                        slot_index INTEGER NOT NULL REFERENCES slots(index),
-                                       client TEXT NOT NULL,
+                                       name TEXT NOT NULL,
                                        version TEXT
                                        );`
 
@@ -128,7 +128,6 @@ FROM (
 GROUP BY sub.date
 ORDER BY sub.date;
     `
-
     return db.query(sql)
 }
 
