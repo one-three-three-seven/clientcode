@@ -55,7 +55,7 @@ function detectClientCode(graffiti: string | null) {
     }
 
     const matches: Client[] = []
-    const standardPattern = /(BU|EG|GE|NM|RH|GR|LH|LS|NB|TK|PM)([0-9a-f]{0,8})(BU|EG|GE|NM|RH|GR|LH|LS|NB|TK|PM)([0-9a-f]{0,8})/g
+    const standardPattern = /(?:\s|^)(BU|EG|GE|NM|RH|GR|LH|LS|NB|TK|PM)([0-9a-f]{0,8})(BU|EG|GE|NM|RH|GR|LH|LS|NB|TK|PM)([0-9a-f]{0,8})/g
     const standardMatches = graffiti.matchAll(standardPattern)
 
     for (const match of standardMatches) {

@@ -1,6 +1,6 @@
 import type { RawBlock } from "./types.js"
 
-const API_HOST = 'http://10.10.10.2:5010'
+const API_HOST = 'http://10.10.10.2:5000'
 
 export async function fetchBlockData(slot: number | string): Promise<RawBlock> {
     try {
